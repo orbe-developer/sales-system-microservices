@@ -17,7 +17,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final WebClient.Builder webClientBuilder;
 
-    public void placeOrder(OrderRequest orderRequest) {
+    public OrderResponse placeOrder(OrderRequest orderRequest) {
         // check for inventory
         BaseResponse result = this.webClientBuilder.build()
                 .post()
@@ -36,18 +36,20 @@ public class OrderService {
         order.setOrderItems(orderRequest.getOrderItems().stream()
                 .map(orderItemRequest -> mapOrderItemRequestToOrderItem(orderItemRequest, order))
                 .toList());
-        this.orderRepository.save(order);
+        var savedOrder = this.orderRepository.save(order);
+
+        return mapToOrderResponse(savedOrder);
     }
 
     public List<OrderResponse> getAllOrders() {
         List<Order> orders = this.orderRepository.findAll();
-        
+
         return orders.stream()
                 .map(this::mapToOrderResponse)
                 .toList();
     }
 
-    private OrderResponse mapToOrderResponse(Order order){
+    private OrderResponse mapToOrderResponse(Order order) {
         return new OrderResponse(
                 order.getId(),
                 order.getOrderNumber(),
@@ -55,6 +57,7 @@ public class OrderService {
                         .map(this::mapToOrderItemRequest)
                         .toList());
     }
+
     private OrderItemResponse mapToOrderItemRequest(OrderItem orderItem) {
         return new OrderItemResponse(orderItem.getId(), orderItem.getSku(), orderItem.getPrice(), orderItem.getQuantity());
     }
