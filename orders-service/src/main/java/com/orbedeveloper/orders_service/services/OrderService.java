@@ -1,10 +1,14 @@
 package com.orbedeveloper.orders_service.services;
 
 import com.orbedeveloper.orders_service.OrderRepository;
+import com.orbedeveloper.orders_service.events.OrderEvent;
 import com.orbedeveloper.orders_service.model.dtos.*;
 import com.orbedeveloper.orders_service.model.entities.Order;
 import com.orbedeveloper.orders_service.model.entities.OrderItem;
+import com.orbedeveloper.orders_service.model.enums.OrderStatus;
+import com.orbedeveloper.orders_service.utils.JsonUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -16,6 +20,7 @@ import java.util.UUID;
 public class OrderService {
     private final OrderRepository orderRepository;
     private final WebClient.Builder webClientBuilder;
+    private final KafkaTemplate<String, String> kafkaTemplate;
 
     public OrderResponse placeOrder(OrderRequest orderRequest) {
         // check for inventory
@@ -37,6 +42,11 @@ public class OrderService {
                 .map(orderItemRequest -> mapOrderItemRequestToOrderItem(orderItemRequest, order))
                 .toList());
         var savedOrder = this.orderRepository.save(order);
+
+        // send message to orders-topic
+        this.kafkaTemplate.send("orders-topic", JsonUtils.toJson(
+                new OrderEvent(savedOrder.getOrderNumber(), savedOrder.getOrderItems().size(), OrderStatus.PLACED)
+        ));
 
         return mapToOrderResponse(savedOrder);
     }
