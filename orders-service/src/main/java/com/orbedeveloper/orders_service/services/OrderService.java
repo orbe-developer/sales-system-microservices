@@ -33,7 +33,7 @@ public class OrderService {
 
             BaseResponse result = this.webClientBuilder.build()
                     .post()
-                    .uri("lb://inventory-service/api/1/inventory/in-stock")
+                    .uri("lb://inventory-service/api/v1/inventory/in-stock")
                     .bodyValue(orderRequest.getOrderItems())
                     .retrieve()
                     .bodyToMono(BaseResponse.class)
